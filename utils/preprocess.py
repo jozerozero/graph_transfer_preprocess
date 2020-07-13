@@ -74,20 +74,21 @@ def get_metapath_neighbor_pairs(adj_matrix, type_mask, expected_metapath_list):
 
         reverse_half_metapath_str = "".join(map(str, reversed(metapath[: (len(metapath)-1)//2+1])))
 
-        mask = np.zeros(adj_matrix.shape, dtype=bool)
-        for i in range((len(metapath)-1) // 2):
-            temp = np.zeros(adj_matrix.shape, dtype=bool)
-            # 这儿的np.ix_(type_mask == metapath[i], type_mask == metapath[i+1])表示
-            # 取得metapath[i]节点的行和metapath[i+1]节点的列组成的方块
-            temp[np.ix_(type_mask == metapath[i], type_mask == metapath[i+1])] = True
-            temp[np.ix_(type_mask == metapath[i+1], type_mask == metapath[i])] = True
-
-            mask = np.logical_or(mask, temp)
+        # mask = np.zeros(adj_matrix.shape, dtype=bool)
+        # for i in range((len(metapath)-1) // 2):
+        #     temp = np.zeros(adj_matrix.shape, dtype=bool)
+        #     # 这儿的np.ix_(type_mask == metapath[i], type_mask == metapath[i+1])表示
+        #     # 取得metapath[i]节点的行和metapath[i+1]节点的列组成的方块
+        #     temp[np.ix_(type_mask == metapath[i], type_mask == metapath[i+1])] = True
+        #     temp[np.ix_(type_mask == metapath[i+1], type_mask == metapath[i])] = True
+        #
+        #     mask = np.logical_or(mask, temp)
         # 生成特定meta-path的meta-path矩阵
         meta_path_matrix = nx.from_numpy_matrix(adj_matrix.astype(int))
 
         target_start_path_dict = dict()
         for target in (type_mask == metapath[(len(metapath)-1)//2]).nonzero()[0]:
+            print(target)
             # 遍历邻接矩阵中metapath中间点类型的所有点,作为target点
             single_source_path = \
                 nx.single_source_shortest_path(G=meta_path_matrix, source=target,

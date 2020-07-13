@@ -1,4 +1,5 @@
 import pathlib
+import pickle
 import numpy as np
 import scipy.sparse
 import scipy.io
@@ -36,7 +37,7 @@ def preprocess(adjM, num_ntypes, type_mask, expected_metapaths, dataoutput):
     # 保存邻接矩阵
     scipy.sparse.save_npz(os.path.join(dataoutput, "adjM.npz"), scipy.sparse.csr_matrix(adjM))
 
-    # 保存点类型序列`
+    # 保存点类型序列
     np.save(os.path.join(dataoutput, "node_types.npy"), type_mask)
 
     for i in range(num_ntypes):
@@ -49,40 +50,41 @@ if __name__ == '__main__':
 
     dataroot = "../../wechatdata/yelp_processed"
     data_save_path = "../../wechatdata/yelp_output/"
-    record = np.load(os.path.join(dataroot, "train_data.npy"))
 
-    user_list = list()
-    item_list = list()
-    for line in record:
-        user_list.append(line[0])
-        item_list.append(line[1])
+    train_record = pickle.load(open(os.path.join(dataroot, "train_user_item_dict.pkl"), mode="rb"))
+    valid_record = pickle.load(open(os.path.join(dataroot, "val_user_item_dict.pkl"), mode="rb"))
+    test_record = pickle.load(open(os.path.join(dataroot, "test_user_item_dict.pkl"), mode="rb"))
 
-    user_num = len(set(user_list))
-    item_num = len(set(item_list))
+    record_list = [train_record, valid_record, test_record]
 
-    print(user_num, min(user_list), max(user_list))
-    print(item_num, min(item_list), max(item_list))
+    total_user_num = 24419
+    total_item_num = 27810
 
     user_item_mapping = dict()
 
-    for i, user_id in enumerate(set(user_list)):
-        user_item_mapping[user_id] = i
-
-    for i, item_id in enumerate(set(item_list)):
-        user_item_mapping[item_id+user_num] = i+user_num
-
-    dim = user_num + item_num
+    dim = total_item_num + total_user_num
+    # for i, id in enumerate(range(dim)):
+    #     user_item_mapping[id] = i
+    #     pass
 
     node_type_list = np.zeros((dim,), dtype=np.int8)
-    node_type_list[user_num:] = 1
+    node_type_list[total_user_num:] = 1
     # 0 denotes users and 1 denote items
     adjance_matrix = np.zeros((dim, dim), dtype=np.int8)
 
-    for line in record:
-        user_index = user_item_mapping[line[0]]
-        item_index = user_item_mapping[line[1] + user_num]
-        adjance_matrix[user_index][item_index] = 1
-        adjance_matrix[item_index][user_index] = 1
+    # for line in record:
+    #     user_index = user_item_mapping[line[0]]
+    #     item_index = user_item_mapping[line[1] + total_user_num]
+    #     adjance_matrix[user_index][item_index] = 1
+    #     adjance_matrix[item_index][user_index] = 1
+    for record in record_list:
+        for user in record.keys():
+            item_list = list(record[user])
+            for item in item_list:
+                item_id = item + total_user_num
+                user_id = user
+                adjance_matrix[user_id][item_id] = 1
+                adjance_matrix[item_id][user_id] = 1
 
     metapath_class_num = 2  # the type of meta-path
     metapath_class_list = [  # meta-path class
@@ -90,5 +92,6 @@ if __name__ == '__main__':
         [(1, 0, 1), ]
     ]
 
+    # exit()
     preprocess(adjM=adjance_matrix, num_ntypes=metapath_class_num, type_mask=node_type_list,
                expected_metapaths=metapath_class_list, dataoutput=data_save_path)
